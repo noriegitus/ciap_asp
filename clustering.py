@@ -6,12 +6,23 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.cluster import KMeans
 from sklearn.pipeline import Pipeline
+import umap.umap_ as umap
+from sklearn.manifold import TSNE
+from kneed import KneeLocator
+
 
 def cargar_datos():
     # Cargar los datos
     df = pd.read_csv('german_credit_data.csv')
     df['Risk_encoded'] = df['Risk'].map({'good': 0, 'bad': 1})
     return df
+
+
+def identificar_codo(inertia):
+    # Identifica el valor óptimo de k utilizando la biblioteca kneed. 
+    k_range = range(2, len(inertia) + 2)  # Los valores de k correspondientes a las inercias
+    kn = KneeLocator(k_range, inertia, curve="convex", direction="decreasing")
+    return kn.knee
 
 
 def metodo_del_codo(df):
@@ -57,25 +68,43 @@ def preprocesar(df):
     processed_data = preprocessor.fit_transform(df)
     return processed_data
 
-def visualizar_pca(processed_data):
-    numerical_cols = ['Age', 'Credit amount', 'Duration']
+def visualizar_pca(processed_data, numerical_cols):
+# Escalar los datos numéricos originales
     scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(df[numerical_cols])
+    scaled_data = scaler.fit_transform(processed_data[numerical_cols])
 
-    # PCA para visualización inicial
+    # PCA para reducir a 2 dimensiones
     pca = PCA(n_components=2)
     pca_result = pca.fit_transform(scaled_data)
 
+    # Visualización con seaborn
     plt.figure(figsize=(8, 6))
-    sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=processed_data['Risk'], palette="coolwarm")
+    sns.scatterplot(
+        x=pca_result[:, 0], 
+        y=pca_result[:, 1], 
+        hue=processed_data['Risk'], 
+        palette="coolwarm"
+    )
     plt.title('PCA de variables numéricas')
     return plt.gcf()
 
-def visualizar_tsne():
-    return None
+def visualizar_tsne(processed_data):
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42)
+    tsne_result = tsne.fit_transform(processed_data)
 
-def visualizar_umap():
-    return None
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(x=tsne_result[:, 0], y=tsne_result[:, 1], palette="coolwarm")
+    plt.title('t-SNE de datos preprocesados')
+    return plt.gcf()
+
+def visualizar_umap(processed_data):
+    reducer = umap.UMAP(n_components=2, random_state=42)
+    umap_result = reducer.fit_transform(processed_data)
+
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(x=umap_result[:, 0], y=umap_result[:, 1], palette="coolwarm")
+    plt.title('UMAP de datos preprocesados')
+    return plt.gcf()
 
 def generar_clusters_kmeans(df, k=4):
     # Clustering
