@@ -13,19 +13,6 @@ def cargar_datos():
     df['Risk_encoded'] = df['Risk'].map({'good': 0, 'bad': 1})
     return df
 
-def visualizar_pca(df):
-    numerical_cols = ['Age', 'Credit amount', 'Duration']
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(df[numerical_cols])
-
-    # PCA para visualización inicial
-    pca = PCA(n_components=2)
-    pca_result = pca.fit_transform(scaled_data)
-
-    plt.figure(figsize=(8, 6))
-    sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=df['Risk'], palette="coolwarm")
-    plt.title('PCA de variables numéricas')
-    return plt.gcf()
 
 def metodo_del_codo(df):
     numerical_cols = ['Age', 'Credit amount', 'Duration']
@@ -58,7 +45,7 @@ def metodo_del_codo(df):
     plt.legend()
     return plt.gcf()
 
-def generar_clusters(df, k=4):
+def preprocesar(df): 
     numerical_cols = ['Age', 'Credit amount', 'Duration']
     categorical_cols = ['Saving accounts', 'Checking account', 'Housing', 'Purpose']
 
@@ -68,7 +55,29 @@ def generar_clusters(df, k=4):
             ('cat', OneHotEncoder(drop='first'), categorical_cols)
         ])
     processed_data = preprocessor.fit_transform(df)
+    return processed_data
 
+def visualizar_pca(processed_data):
+    numerical_cols = ['Age', 'Credit amount', 'Duration']
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(df[numerical_cols])
+
+    # PCA para visualización inicial
+    pca = PCA(n_components=2)
+    pca_result = pca.fit_transform(scaled_data)
+
+    plt.figure(figsize=(8, 6))
+    sns.scatterplot(x=pca_result[:, 0], y=pca_result[:, 1], hue=processed_data['Risk'], palette="coolwarm")
+    plt.title('PCA de variables numéricas')
+    return plt.gcf()
+
+def visualizar_tsne():
+    return None
+
+def visualizar_umap():
+    return None
+
+def generar_clusters_kmeans(df, k=4):
     # Clustering
     kmeans = KMeans(n_clusters=k, random_state=42)
     df['Cluster'] = kmeans.fit_predict(processed_data)
