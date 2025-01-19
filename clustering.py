@@ -52,9 +52,13 @@ def metodo_del_codo(df):
     plt.title('Método del Codo para determinar k')
     plt.xlabel('Número de Clusters (k)')
     plt.ylabel('Inercia')
+    # Identificar el codo y resaltarlo
+    optimal_k = identificar_codo(inertia)  # Implementa esta función según tu criterio
+    plt.axvline(x=optimal_k, color='red', linestyle='--', label=f'k óptimo = {optimal_k}')
+    plt.legend()
     return plt.gcf()
 
-def visualizar_clusters(df, k=4):
+def generar_clusters(df, k=4):
     numerical_cols = ['Age', 'Credit amount', 'Duration']
     categorical_cols = ['Saving accounts', 'Checking account', 'Housing', 'Purpose']
 
@@ -68,15 +72,19 @@ def visualizar_clusters(df, k=4):
     # Clustering
     kmeans = KMeans(n_clusters=k, random_state=42)
     df['Cluster'] = kmeans.fit_predict(processed_data)
+    df.to_csv("german_credit_data_results.csv") # guardar
 
+def visualizacion():
+    data_results = pd.read_csv("german_credit_data_results.csv")
     # PCA para visualización de clusters
     pca = PCA(n_components=2)
     pca_result = pca.fit_transform(processed_data)
 
     df_pca = pd.DataFrame(pca_result, columns=['PCA1', 'PCA2'])
-    df_pca['Cluster'] = df['Cluster']
+    df_pca['Cluster'] = data_results['Cluster']
 
     plt.figure(figsize=(8, 6))
     sns.scatterplot(x='PCA1', y='PCA2', hue='Cluster', data=df_pca, palette='Set2', s=100)
     plt.title('Visualización de Clusters (PCA)')
-    return plt.gcf(), df
+    return plt.gcf(), data_results
+
