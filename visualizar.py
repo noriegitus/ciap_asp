@@ -1,76 +1,64 @@
 import streamlit as st
 from clustering import (
     cargar_datos,
-    identificar_codo,
-    metodo_del_codo,
     preprocesar,
-    visualizar_pca,
-    visualizar_tsne,
-    visualizar_umap,
+    metodo_del_codo,
+    determinar_k_optimo,
     generar_clusters_kmeans,
-    visualizacion,
+    visualizar_metodo_del_codo,
+    visualizar_pairplot
 )
 
-# Título y descripción de la aplicación
-st.title("Análisis de Datos: German Credit Data")
-st.markdown("""
-Esta aplicación permite analizar y visualizar datos del conjunto *German Credit Data* utilizando diversas técnicas de análisis y clustering.
-""")
+# Configuración inicial de Streamlit
+st.set_page_config(page_title="Análisis de Clustering", layout="wide")
 
-# Cargar datos
-st.sidebar.header("Opciones")
-df = cargar_datos()
-numerical_cols = ['Age', 'Credit amount', 'Duration']
+# Título principal
+st.title("Análisis de Clustering de Datos")
 
-st.write("Vista previa de los datos:")
-st.dataframe(df.head())
+# Paso 1: Cargar los datos
+st.header("1. Cargar Datos")
+try:
+    df = cargar_datos()
+    st.write("Datos cargados con éxito. Vista previa del dataset:")
+    st.dataframe(df.head())
+except FileNotFoundError:
+    st.error("Error: No se encontró el archivo de datos. Asegúrate de que el archivo 'datos.csv' esté en el directorio correcto.")
+    st.stop()
 
-# Selección de análisis
-opcion = st.sidebar.selectbox(
-    "Selecciona una acción:",
-    [
-        "Método del Codo",
-        "Visualización PCA",
-        "Visualización t-SNE",
-        "Visualización UMAP",
-        "Generar Clusters",
-        "Visualización de Clusters",
-    ],
-)
+# Paso 2: Preprocesamiento
+st.header("2. Preprocesamiento de Datos")
+processed_data, numerical_cols = preprocesar(df)
+st.write("Datos preprocesados exitosamente.")
+st.write("Columnas numéricas detectadas y escaladas:")
+st.write(numerical_cols)
 
-# Procesar datos
-processed_data = preprocesar(df)
+# Paso 3: Método del Codo
+st.header("3. Determinación del Número Óptimo de Clusters")
+if st.button("Ejecutar Método del Codo"):
+    distortions = metodo_del_codo(processed_data)
+    optimal_k = determinar_k_optimo(distortions)
+    st.write(f"Número óptimo de clusters identificado: {optimal_k}")
+    
+    # Visualizar el método del codo
+    fig_codo = visualizar_metodo_del_codo(distortions)
+    st.pyplot(fig_codo)
 
-# Métodos seleccionados
-if opcion == "Método del Codo":
-    st.subheader("Método del Codo para determinar k")
-    fig = metodo_del_codo(df)
-    st.pyplot(fig)
+# Paso 4: Generar Clusters
+st.header("4. Generar Clusters")
+if st.button("Generar Clustering"):
+    if 'optimal_k' in locals():
+        clusters = generar_clusters_kmeans(processed_data, k=optimal_k)
+        df['Cluster'] = clusters  # Agregar los clusters al DataFrame original
+        st.write("Clustering generado con éxito. Vista previa del dataset con clusters:")
+        st.dataframe(df.head())
+    else:
+        st.error("Primero debes ejecutar el método del codo para determinar el número óptimo de clusters.")
 
-elif opcion == "Visualización PCA":
-    st.subheader("Visualización PCA")
-    fig = visualizar_pca(df, numerical_cols)
-    st.pyplot(fig)
-
-elif opcion == "Visualización t-SNE":
-    st.subheader("Visualización t-SNE")
-    fig = visualizar_tsne(processed_data)
-    st.pyplot(fig)
-
-elif opcion == "Visualización UMAP":
-    st.subheader("Visualización UMAP")
-    fig = visualizar_umap(processed_data)
-    st.pyplot(fig)
-
-elif opcion == "Generar Clusters":
-    st.subheader("Generar Clusters con K-Means")
-    k = st.sidebar.slider("Selecciona el número de clusters (k):", 2, 10, 4)
-    generar_clusters_kmeans(df, k)
-    st.success(f"Clusters generados con k={k} y guardados en 'german_credit_data_results.csv'.")
-
-elif opcion == "Visualización de Clusters":
-    st.subheader("Visualización de Clusters")
-    fig, data_results = visualizacion()
-    st.pyplot(fig)
-    st.write("Datos con clusters:")
-    st.dataframe(data_results.head())
+# Paso 5: Visualización con Pairplot
+st.header("5. Visualización de Clusters con Pairplot")
+if st.button("Mostrar Pairplot"):
+    if 'clusters' in locals():
+        st.write("Generando visualización de clusters con pairplot...")
+        visualizar_pairplot(df, numerical_cols, clusters)
+    else:
+        st.error("Primero debes generar los clusters para visualizar el pairplot.")
